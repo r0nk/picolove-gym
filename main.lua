@@ -1,7 +1,12 @@
+local launch_type = arg[3]
+  if launch_type == "debug" then
+    require("lldebugger").start()
+  end
+
+
 pico8={
 	fps=30,
 	frames=0,
-	pal_transparent={},
 	resolution={128, 128},
 	palette={
 		{0,  0,  0,  255},
@@ -85,9 +90,9 @@ local paused=false
 local mobile=false
 local api, cart, gif
 
-local __buffer_count=8
-local __buffer_size=1024
+local __buffer_count=2
 local __sample_rate=22050
+local __buffer_size=1/60*__sample_rate
 local channels=1
 local bits=16
 
@@ -237,7 +242,7 @@ function love.load(argv)
 	end
 
 	pico8.audio_source=love.audio.newQueueableSource(__sample_rate, bits, channels, __buffer_count)
-	pico8.audio_source:play()
+	--pico8.audio_source:play()
 	pico8.audio_buffer=love.sound.newSoundData(__buffer_size, __sample_rate, bits, channels)
 
 	for i=0, 3 do
@@ -508,6 +513,7 @@ function update_audio(buffer)
 	-- check what sfx should be playing
 
 	for bufferpos=0, __buffer_size-1 do
+
 		if pico8.current_music then
 			pico8.current_music.offset=pico8.current_music.offset+7350/(61*pico8.current_music.speed*__sample_rate)
 			if pico8.current_music.offset>=32 then
@@ -530,9 +536,10 @@ function update_audio(buffer)
 				end
 			end
 		end
-		local music=pico8.current_music and pico8.music[pico8.current_music.music] or nil
 
+		local music=pico8.current_music and pico8.music[pico8.current_music.music] or nil
 		local sample=0
+
 		for channel=0, 3 do
 			local ch=pico8.audio_channels[channel]
 			local note, instr, vol, fx
@@ -552,6 +559,7 @@ function update_audio(buffer)
 					pico8.audio_channels[channel].sfx=nil
 				end
 			end
+
 			if ch.sfx and pico8.sfx[ch.sfx] then
 				local sfx=pico8.sfx[ch.sfx]
 				-- when we pass a new step
@@ -637,7 +645,7 @@ function love.keypressed(key)
 		love.event.quit()
 	elseif key=='v' and isCtrlOrGuiDown() then
 		pico8.clipboard=love.system.getClipboardText()
-	elseif key=='pause' then
+	elseif key=='pause' or key =='p' then
 		paused=not paused
 	elseif key=='f1' or key=='f6' then
 		-- screenshot
@@ -726,6 +734,7 @@ function love.run()
 
 	-- Main loop time.
 	return function()
+
 		-- Process events.
 		if love.event then
 			love.graphics.setCanvas() -- TODO: Rework this
@@ -770,11 +779,13 @@ function love.run()
 			pico8.mwheel=0
 		end
 
-		for i=1, pico8.audio_source:getFreeBufferCount() do
-			update_audio(pico8.audio_buffer)
-			pico8.audio_source:queue(pico8.audio_buffer)
-			pico8.audio_source:play()
-		end
+    if not paused then
+      for i=1, pico8.audio_source:getFreeBufferCount() do
+  			update_audio(pico8.audio_buffer)
+			  pico8.audio_source:queue(pico8.audio_buffer)
+			  pico8.audio_source:play()
+		  end
+    end
 
 		if love.timer then love.timer.sleep(0.001) end
 	end

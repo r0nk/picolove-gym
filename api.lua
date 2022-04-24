@@ -1,4 +1,5 @@
 local flr=math.floor
+local pack_format="ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" --64 float numbers
 
 -- TODO: Remove this
 local scrblitMesh=love.graphics.newMesh(128, "points")
@@ -33,6 +34,14 @@ local api={}
 function api.flip()
 	flip_screen()
 	love.timer.sleep(1/pico8.fps)
+end
+
+function api.chr(v)
+  return string.char(v)
+end
+
+function api.ord(v)
+  return string.byte(v)
 end
 
 function api.camera(x, y)
@@ -507,6 +516,7 @@ function api.sset(x, y, c)
 end
 
 function api.music(n, fade_len, channel_mask)
+  n = n or 0
 	if n==-1 then
 		if pico8.current_music then
 			for i=0, 3 do
@@ -1027,16 +1037,17 @@ function api.cartdata(id)
 		return false
 	end
 	local filename=id..".lua"
-	if love.filesystem.getInfo(filename, "file") then
+
+  	if love.filesystem.getInfo(filename, "file") then
 		local data=love.filesystem.read(filename)
-		pico8.cartdata={love.data.unpack("f", data)}
+		pico8.cartdata={love.data.unpack(pack_format, data)}
 	else
 		local file=love.filesystem.newFile(filename)
 		local ok,err=file:open("w")
 		if not ok then
 			error(err)
 		end
-		local data=love.data.pack("string", "f", unpack(pico8.cartdata))
+		local data=love.data.pack("string", pack_format, unpack(pico8.cartdata))
 		ok,err=love.filesystem.write(filename, data)
 		if not ok then
 			error(err)
@@ -1060,11 +1071,12 @@ function api.dget(index)
 	if not data then
 		error(err)
 	end
-	pico8.cartdata={love.data.unpack("f", data)}
+	pico8.cartdata={love.data.unpack(pack_format, data)}
 	return pico8.cartdata[index]
 end
 
 function api.dset(index, value)
+  value=value or 0
 	index=index+1
 	if not pico8.cart_id then
 		error('** dset called before cartdata()')
@@ -1074,9 +1086,12 @@ function api.dset(index, value)
 		warning('cartdata index out of range')
 		return 0
 	end
+
 	pico8.cartdata[index]=value
-	local data=love.data.pack("string", "f" ,unpack(pico8.cartdata))
-	local ok,err=love.filesystem.write(pico8.cart_id..".lua", data)
+
+  local data=love.data.pack("string", pack_format ,unpack(pico8.cartdata))
+  local ok,err=love.filesystem.write(pico8.cart_id..".lua", data)
+
 	if not ok then
 		error(err)
 	end

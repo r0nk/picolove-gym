@@ -1,0 +1,4 @@
+pause menu and menuitems
+perf counter
+binary operator substitution is incomplete, integer division shouldk not capture operators... stop at parenthesis
+missing glyphs 1-16

@@ -1,5 +1,5 @@
 local api=require("api")
-
+local glyph_s={}
 local compression_map={}
 for entry in ("\n 0123456789abcdefghijklmnopqrstuvwxyz!#%(){}[]<>+=/*:;.,~_"):gmatch(".") do
 	table.insert(compression_map, entry)
@@ -379,8 +379,10 @@ function cart.load_p8(filename)
 	end
 
 	-- patch the lua
+
 	lua=lua:gsub("!=", "~=").."\n"
-	-- rewrite shorthand if statements eg. if (not b) i=1 j=2
+
+  -- rewrite shorthand if statements eg. if (not b) i=1 j=2
 	lua=lua:gsub("if%s*(%b())%s*([^\n]*)\n", function(a, b)
 		local nl=a:find('\n', nil, true)
 		local th=b:find('%f[%w]then%f[%W]')
@@ -412,11 +414,44 @@ function cart.load_p8(filename)
 		end
 	end)
 
-	local cart_env={}
-	for k, v in pairs(api) do
-		cart_env[k]=v
-	end
-	cart_env._ENV=cart_env -- Lua 5.2 compatibility hack
+  --rewrite glyphs
+  local rep_glyphs={ "", "",  "",  "" ,  "",  "", "", "", "",  "",  "",  "", "", "",  "",  "", "", "", "",  "", "",  "",  "",  "",  "",  ""}
+  local glyphs={ "█", "▒", "🐱", "⬇️" , "░",  "✽", "●", "♥", "☉", "웃", "⌂", "⬅️","😐","♪", "🅾️", "◆", "…","➡️", "★", "⧗", "⬆️", "ˇ", "∧", "❎", "▤",  "▥" }
+  for i=1,#rep_glyphs do
+    glyph_s[glyphs[i]]=rep_glyphs[i]
+  end
+
+  lua=lua:gsub("[█▒🐱⬇️░✽●♥☉웃⌂⬅️😐♪🅾️◆…➡️★⧗⬆️ˇ∧❎▤▥]+",
+  function(a)
+    return glyph_s[a]
+  end)
+  --s=glyph_s[glyphs [i]] or glyphs [i]
+
+  -- rewrite shorthand print ?... to print(...) @todo: CLEANUP
+  lua=lua:gsub("^%?(%S+)", "print(%1)")
+  lua=lua:gsub("(%s+)%?(%S+)", "%1print(%2)")
+
+  --rewrite binary operators @todo: MISSING SOME and mess with code
+  lua=lua:gsub("([%w_%%%+%-%*]*)(%s*)|(%s*)([%w_%%%+%-%*%[%]]*)", "bor(%1,%4)")
+  lua=lua:gsub("([%w_%%%+%-%*]*)(%s*)<<(%s*)([%w_%%%+%-%*]*)"," shl(%1,%4)")
+  --lua=lua:gsub("([%w_%%%+%-%*]*)(%s*)&(%s*)([%w_%%%+%-%*]*)", "band(%1,%4)") messes with fdat
+
+  --rewrite integer division @todo: incomplete
+  local pattern="\\n"
+  local form="<NEWLINE>"
+  lua=lua:gsub(pattern,form)
+  pattern="([%w%p_%%%+%-%*]*)\\([%w%p_%%%+%-%*^]*)"
+  form="flr(%1/%2)"
+  lua=lua:gsub(pattern,form)
+  pattern="<NEWLINE>"
+  form="\\n"
+  lua=lua:gsub(pattern,form)
+
+    local cart_env={}
+    for k, v in pairs(api) do
+      cart_env[k]=v
+    end
+    cart_env._ENV=cart_env -- Lua 5.2 compatibility hack
 
 	local ok, f, e=pcall(load, lua, "@"..filename)
 	if not ok or f==nil then
