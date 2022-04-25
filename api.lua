@@ -135,7 +135,7 @@ function api.print(str, x, y, col)
 		pico8.cursor[2]=flr(tonumber(y) or 0)
 	end
 	love.graphics.setShader(pico8.text_shader)
-	local str=tostring(str):gsub("[%z\1-\9\11-\31\154-\255]", " "):gsub("[\128-\153]", "\194%1").."\n"
+	str=tostring(str):gsub("[%z\1-\9\11-\31\154-\255]", ""):gsub("[\128-\153]", "\194%1").."\n"
 	local size=0
 	for line in str:gmatch("(.-)\n") do
 		love.graphics.print(line, pico8.cursor[1], pico8.cursor[2]+size)
@@ -348,6 +348,7 @@ function api.line(x0, y0, x1, y1, col)
 		love.graphics.line(x0+0.5, y0+0.5, x1+0.5, y1+0.5)
 		-- Final pixel not being reached?
 		love.graphics.points(x1+0.5, y1+0.5)
+    love.graphics.points(x0+0.5, y0+0.5)
 	end
 end
 

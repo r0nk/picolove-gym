@@ -1,4 +1,4 @@
-function love.conf(t)
+  function love.conf(t)
 	t.identity="picolove"
 	t.version="11.0"
 

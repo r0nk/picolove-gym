@@ -447,6 +447,10 @@ function cart.load_p8(filename)
   form="\\n"
   lua=lua:gsub(pattern,form)
 
+  --hack for unicode string lenght
+  lua=lua:gsub("#(%b\"\")","my_len(%1)")
+  lua=lua:gsub("#([%w_%.%[%]]+)","my_len(%1)")
+
     local cart_env={}
     for k, v in pairs(api) do
       cart_env[k]=v
@@ -478,6 +482,18 @@ function cart.load_p8(filename)
 	log("finished loading cart", filename)
 
 	return cart_env
+end
+
+local orig_len = string.len
+function api.my_len(s)
+  if type(s) == "string" then
+    s=s:gsub("[]+",
+    function(a)
+      return "x"
+      end)
+    return orig_len(s)
+  else return #s
+  end
 end
 
 return cart
