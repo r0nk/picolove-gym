@@ -7,22 +7,16 @@ __lua__
 --local lbl_a = lbl_lev..(flr((l.id-1)/wrl_lev[hard])+1).."-"..st
 --c=flr(1+((t+bt)/21)%3)
 
- --rewrite integer division @todo: incomplete
- local pattern="\\n"
- local form="<NEWLINE>"
- lua=lua:gsub(pattern,form)
- pattern="([%w%p_%%%+%-%*]*)\\([%w%p_%%%+%-%*^]*)"
- form="flr(%1/%2)"
- lua=lua:gsub(pattern,form)
- pattern="<NEWLINE>"
- form="\\n"
- lua=lua:gsub(pattern,form)
-
-
-
-
-
-
+--rewrite integer division @todo: incomplete
+local pattern="\\n"
+local form="<NEWLINE>"
+lua=lua:gsub(pattern,form)
+pattern="([%w%p_%%%+%-%*]*)\\([%w%p_%%%+%-%*^]*)"
+form="flr(%1/%2)"
+lua=lua:gsub(pattern,form)
+pattern="<NEWLINE>"
+form="\\n"
+lua=lua:gsub(pattern,form)
 
 
 lua=[=[
@@ -34,13 +28,6 @@ fdat = [[0188.c218| 0108.4210} 02a8.0000`*013e.e500]]
   if 2 | passmask
   if 2|mmmask
   pdata[num] = o | pdata[num] ]=]
-
-
-
-
-
-
-
 
 
 --this captures the whole long string
@@ -65,30 +52,3 @@ lua=[=[
 
   pdata[num] = o | pdata[num]
 ]=]
-
---string lenght override
-
-s0="abcd"
-s1="🅾️a"
-
-l=#s0
-print(l)
-l=#s1
-print(l)
-
-  orig_len = string.len
-  function my_len(s)
-    s=s:gsub("[█▒🐱⬇️░✽●♥☉웃⌂⬅️😐♪🅾️◆…➡️★⧗⬆️ˇ∧❎▤▥]+",
-  function(a)
-    return "x"
-  end)
-
-    print(s)
-    return orig_len(s)
-  end
-  string.len = my_len
-
-l=s0:len()
-print(l)
-l=s1:len()
-print(l)

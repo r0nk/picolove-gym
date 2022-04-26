@@ -382,6 +382,17 @@ function cart.load_p8(filename)
 
 	lua=lua:gsub("!=", "~=").."\n"
 
+  -- rewrite shorthand print ?... to print(...)
+  lua=lua:gsub("(%S)%?%w*\"", "%1<&quest;>\"")
+  lua=lua:gsub("([^%[%[%s%w%?]-)%?([^%?.]-)\n", "print(%2)\n")
+  lua=lua:gsub("<&quest;>","%?")
+
+ --rewrite binary operators @todo: MISSING SOME and doesn;t catch (...)
+ lua=lua:gsub("([^%[%[%=%*%+%%%-%/%?]-)|([^.]-)([%*%+%-%%%)]-)\n", "bor(%1,%2)\n")
+ lua=lua:gsub("([^%[%[%=%*%+%%%-%/%?]-)&([^.]-)([%*%+%-%%%)]-)\n", "band(%1,%2)\n")
+lua=lua:gsub("([^%[%[%=%*%+%%%-%/%?]-)<<([^.]-)([%*%+%-%%%)]-)\n", "shl(%1,%2)\n")
+
+
   -- rewrite shorthand if statements eg. if (not b) i=1 j=2
 	lua=lua:gsub("if%s*(%b())%s*([^\n]*)\n", function(a, b)
 		local nl=a:find('\n', nil, true)
@@ -398,6 +409,9 @@ function cart.load_p8(filename)
 			end
 		end
 	end)
+
+
+
 	-- rewrite assignment operators
 	lua=lua:gsub("(%S+)%s*([%+-%*/%%])=", "%1 = %1 %2 ")
 	-- convert binary literals to hex literals
@@ -427,14 +441,9 @@ function cart.load_p8(filename)
   end)
   --s=glyph_s[glyphs [i]] or glyphs [i]
 
-  -- rewrite shorthand print ?... to print(...) @todo: CLEANUP
-  lua=lua:gsub("^%?(%S+)", "print(%1)")
-  lua=lua:gsub("(%s+)%?(%S+)", "%1print(%2)")
 
-  --rewrite binary operators @todo: MISSING SOME and mess with code
-  lua=lua:gsub("([%w_%%%+%-%*]*)(%s*)|(%s*)([%w_%%%+%-%*%[%]]*)", "bor(%1,%4)")
-  lua=lua:gsub("([%w_%%%+%-%*]*)(%s*)<<(%s*)([%w_%%%+%-%*]*)"," shl(%1,%4)")
-  --lua=lua:gsub("([%w_%%%+%-%*]*)(%s*)&(%s*)([%w_%%%+%-%*]*)", "band(%1,%4)") messes with fdat
+
+
 
   --rewrite integer division @todo: incomplete
   local pattern="\\n"

@@ -7,5 +7,5 @@
 	t.window.height=540
 	t.window.resizable=true
 
-	t.console=false
+	t.console=true
 end
