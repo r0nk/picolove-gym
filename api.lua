@@ -339,6 +339,7 @@ function api.line(x0, y0, x1, y1, col)
 		love.graphics.line(x0+0.5, y0+0.5, x1+0.5, y1+0.5)
 		-- Final pixel not being reached?
 		love.graphics.points(x1+0.5, y1+0.5)
+    love.graphics.points(x0+0.5, y0+0.5)
 	end
 end
 
@@ -978,8 +979,8 @@ function api.radio()
 end
 
 function api.btn(i, p)
-	if i~=nil or p~=nil then
-		p=p or 0
+  p = p or 0
+	if i~=nil then
 		if p<0 or p>1 then
 			return false
 		end
@@ -995,8 +996,8 @@ function api.btn(i, p)
 end
 
 function api.btnp(i, p)
-	if i~=nil or p~=nil then
-		p=p or 0
+  p = p or 0
+	if i~=nil then
 		if p<0 or p>1 then
 			return false
 		end

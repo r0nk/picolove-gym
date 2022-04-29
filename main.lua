@@ -35,6 +35,14 @@ pico8={
 		counter=0
 	},
 	kbdbuffer={},
+  padmap={
+    [0]={'dpleft'},
+    [1]={'dpright'},
+    [2]={'dpup'},
+    [3]={'dpdown'},
+    [4]={'a', 'y'},
+    [5]={'b', 'x'}
+  },
 	keymap={
 		[0]={
 			[0]={'left'},
@@ -382,6 +390,8 @@ local function update_buttons()
 	for p=0, 1 do
 		local keymap=pico8.keymap[p]
 		local keypressed=pico8.keypressed[p]
+    local joysticks=love.joystick.getJoysticks()
+    local tot_pads = love.joystick.getJoystickCount( )
 		for i=0, 5 do
 			local btn=false
 			for _, testkey in pairs(keymap[i]) do
@@ -390,6 +400,16 @@ local function update_buttons()
 					break
 				end
 			end
+
+      if not btn and p+1 <= tot_pads and joysticks[p+1]:isGamepad() then
+        for _, testkey in pairs(pico8.padmap[i]) do
+          if joysticks[p+1]:isGamepadDown(testkey) then
+            btn=true
+            break
+          end
+        end
+      end
+
 			if not btn and mobile and p==0 then
 				for _, id in pairs(touches) do
 					btn=touchcheck(i, love.touch.getPosition(id))
