@@ -1,5 +1,7 @@
 pico8={
 	fps=30,
+	frames=0,
+	pal_transparent={},
 	resolution={128, 128},
 	palette={
 		{0,  0,  0,  255},
@@ -33,14 +35,14 @@ pico8={
 		counter=0
 	},
 	kbdbuffer={},
-	padmap={
-		[0]={'dpleft'},
-		[1]={'dpright'},
-		[2]={'dpup'},
-		[3]={'dpdown'},
-		[4]={'a', 'y'},
-		[5]={'b', 'x'}
-	},
+  padmap={
+    [0]={'dpleft'},
+    [1]={'dpright'},
+    [2]={'dpup'},
+    [3]={'dpdown'},
+    [4]={'a', 'y'},
+    [5]={'b', 'x'}
+  },
 	keymap={
 		[0]={
 			[0]={'left'},
@@ -88,7 +90,6 @@ local osc
 local host_time=0
 local retro_mode=false
 local paused=false
-local muted=false
 local mobile=false
 local api, cart, gif
 
@@ -132,7 +133,7 @@ function _load(filename)
 		end
 	end
 	cartname=filename
-	pico8.frames=0
+
 	pico8.camera_x=0
 	pico8.camera_y=0
 	love.graphics.origin()
@@ -158,9 +159,6 @@ function _load(filename)
 	else
 		setfps(30)
 	end
-
-	-- We don't want the first frame's dt to include time taken by love.load.
-	if love.timer then log(love.timer.step()) end
 end
 
 function love.resize(w, h)
@@ -383,10 +381,6 @@ local function touchcheck(i, x, y)
 	end
 end
 
-local function isCtrlOrGuiDown()
-	return (love.keyboard.isDown('lctrl') or love.keyboard.isDown('lgui') or love.keyboard.isDown('rctrl') or love.keyboard.isDown('rgui'))
-end
-
 local function update_buttons()
 	local init, loop=pico8.fps/2, pico8.fps/7.5
 	local touches
@@ -396,8 +390,8 @@ local function update_buttons()
 	for p=0, 1 do
 		local keymap=pico8.keymap[p]
 		local keypressed=pico8.keypressed[p]
-		local joysticks=love.joystick.getJoysticks()
-		local tot_pads = love.joystick.getJoystickCount( )
+    local joysticks=love.joystick.getJoysticks()
+    local tot_pads = love.joystick.getJoystickCount( )
 		for i=0, 5 do
 			local btn=false
 			for _, testkey in pairs(keymap[i]) do
@@ -407,14 +401,14 @@ local function update_buttons()
 				end
 			end
 
-			if not btn and p+1 <= tot_pads and joysticks[p+1]:isGamepad() then
-				for _, testkey in pairs(pico8.padmap[i]) do
-					if joysticks[p+1]:isGamepadDown(testkey) then
-						btn=true
-						break
-					end
-				end
-			end
+      if not btn and p+1 <= tot_pads and joysticks[p+1]:isGamepad() then
+        for _, testkey in pairs(pico8.padmap[i]) do
+          if joysticks[p+1]:isGamepadDown(testkey) then
+            btn=true
+            break
+          end
+        end
+      end
 
 			if not btn and mobile and p==0 then
 				for _, id in pairs(touches) do
@@ -649,29 +643,27 @@ function update_audio(buffer)
 	end
 end
 
-function love.keypressed(key)
+local function isCtrlOrGuiDown()
+	return (love.keyboard.isDown('lctrl') or love.keyboard.isDown('lgui') or love.keyboard.isDown('rctrl') or love.keyboard.isDown('rgui'))
+end
 
+function love.keypressed(key)
+	if cart and pico8.cart._keydown then
+		return pico8.cart._keydown(key)
+	end
 	if key=='r' and isCtrlOrGuiDown() then
 		_load()
-
 	elseif key=='q' and isCtrlOrGuiDown() then
 		love.event.quit()
-
 	elseif key=='v' and isCtrlOrGuiDown() then
 		pico8.clipboard=love.system.getClipboardText()
-
-	elseif key=='pause' or key=='p' or key=='return' then
+	elseif key=='pause' then
 		paused=not paused
-
-	elseif key=='m' and isCtrlOrGuiDown() then
-		muted=not muted
-
 	elseif key=='f1' or key=='f6' then
 		-- screenshot
 		local filename=cartname..'-'..os.time()..'.png'
 		love.graphics.captureScreenshot(filename)
 		log('saved screenshot to', filename)
-
 	elseif key=='f3' or key=='f8' then
 		-- start recording
 		if gif_recording==nil then
@@ -686,7 +678,6 @@ function love.keypressed(key)
 		else
 			log('recording already in progress')
 		end
-
 	elseif key=='f4' or key=='f9' then
 		-- stop recording and save
 		if gif_recording~=nil then
@@ -696,10 +687,6 @@ function love.keypressed(key)
 			gif_canvas=nil
 		else
 			log('no active recording')
-		end
-
-		elseif cart and pico8.cart._keydown then
-			return pico8.cart._keydown(key)
 		end
 	end
 end
@@ -752,6 +739,9 @@ function love.run()
 
 	if love.load then love.load(love.arg.parseGameArguments(arg), arg) end
 
+	-- We don't want the first frame's dt to include time taken by love.load.
+	if love.timer then love.timer.step() end
+
 	local dt=0
 
 	-- Main loop time.
@@ -762,7 +752,7 @@ function love.run()
 			love.event.pump()
 			love.graphics.setCanvas(pico8.screen) -- TODO: Rework this
 			for name, a, b, c, d, e, f in love.event.poll() do
-				if name=="quit" then
+				if name == "quit" then
 					if not love.quit or not love.quit() then
 						return a or 0
 					end
@@ -780,7 +770,7 @@ function love.run()
 			host_time=host_time+dt
 			if paused then
 			else
-				if love.update then love.update(dt) end -- will pass 0 if love.timer is disabled
+				if love.update then love.update(frametime) end -- will pass 0 if love.timer is disabled
 			end
 			dt=dt-frametime
 			render=true
@@ -800,13 +790,11 @@ function love.run()
 			pico8.mwheel=0
 		end
 
-	if not muted and not paused then
 		for i=1, pico8.audio_source:getFreeBufferCount() do
 			update_audio(pico8.audio_buffer)
 			pico8.audio_source:queue(pico8.audio_buffer)
 			pico8.audio_source:play()
 		end
-	end
 
 		if love.timer then love.timer.sleep(0.001) end
 	end
