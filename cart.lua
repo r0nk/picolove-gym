@@ -382,6 +382,16 @@ function cart.load_p8(filename)
 
 	lua=lua:gsub("!=", "~=").."\n"
 
+
+  --rewrite button glyphs (must check one by one because if i use a glyph set it doesn't work ???)
+  lua=lua:gsub("\n(.-btnp%s*%(%s*)⬅️","\n%10")
+  lua=lua:gsub("\n(.-btnp%s*%(%s*)➡️","\n%11")
+  lua=lua:gsub("\n(.-btnp%s*%(%s*)⬆️","\n%12")
+  lua=lua:gsub("\n(.-btnp%s*%(%s*)⬇️","\n%13")
+  lua=lua:gsub("\n(.-btnp%s*%(%s*)🅾️","\n%14")
+  lua=lua:gsub("\n(.-btnp%s*%(%s*)❎","\n%15")
+
+
   -- rewrite shorthand print ?... to print(...)
   lua=lua:gsub("(%S)%?%w*\"", "%1<&quest;>\"")
   lua=lua:gsub("([^%[%[%s%w%?]-)%?([^%?.]-)\n", "print(%2)\n")
@@ -410,8 +420,6 @@ lua=lua:gsub("([^%[%[%=%*%+%%%-%/%?]-)<<([^.]-)([%*%+%-%%%)]-)\n", "shl(%1,%2)\n
 		end
 	end)
 
-
-
 	-- rewrite assignment operators
 	lua=lua:gsub("(%S+)%s*([%+-%*/%%])=", "%1 = %1 %2 ")
 	-- convert binary literals to hex literals
@@ -428,9 +436,10 @@ lua=lua:gsub("([^%[%[%=%*%+%%%-%/%?]-)<<([^.]-)([%*%+%-%%%)]-)\n", "shl(%1,%2)\n
 		end
 	end)
 
+
   --rewrite glyphs
   local rep_glyphs={ "", "",  "",  "" ,  "",  "", "", "", "",  "",  "",  "", "", "",  "",  "", "", "", "",  "", "",  "",  "",  "",  "",  ""}
-  local glyphs={ "█", "▒", "🐱", "⬇️" , "░",  "✽", "●", "♥", "☉", "웃", "⌂", "⬅️","😐","♪", "🅾️", "◆", "…","➡️", "★", "⧗", "⬆️", "ˇ", "∧", "❎", "▤",  "▥" }
+  local     glyphs={ "█", "▒", "🐱", "⬇️" , "░",  "✽", "●", "♥", "☉", "웃", "⌂", "⬅️","😐","♪", "🅾️", "◆", "…","➡️", "★", "⧗", "⬆️", "ˇ", "∧", "❎", "▤",  "▥" }
   for i=1,#rep_glyphs do
     glyph_s[glyphs[i]]=rep_glyphs[i]
   end
@@ -440,10 +449,6 @@ lua=lua:gsub("([^%[%[%=%*%+%%%-%/%?]-)<<([^.]-)([%*%+%-%%%)]-)\n", "shl(%1,%2)\n
     return glyph_s[a]
   end)
   --s=glyph_s[glyphs [i]] or glyphs [i]
-
-
-
-
 
   --rewrite integer division @todo: incomplete
   local pattern="\\n"

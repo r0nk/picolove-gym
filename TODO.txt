@@ -1,4 +1,7 @@
 pause menu and menuitems
+fillp
 perf counter
-binary operator substitution is incomplete, integer division shouldk not capture operators... stop at parenthesis
 missing glyphs 1-16
+
+binary operator,+= -=..assigm=nments and most lua patch substitutions are incomplete
+integer division shouldk not capture operators... stop at parenthesis

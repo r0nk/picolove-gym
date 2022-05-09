@@ -28,27 +28,27 @@ __lua__
 --shuffle anim at new stage
 
 --title_bg="/&XWれt¹&WRろU¹&RRVu¹&わRゃu¹&W●れれ³&R●Uろ³&わ●ゃろ³&Rvゃ✽²&RnゃuB&R^ゃeる&Rfゃm🐱&R●ゃ♪B&R🅾️ゃˇ🐱&R∧ゃえる&Rわゃゃ⁴&RもゃれD&Rへゃや░&Rなゃふろ!TWるり▒!NNイイ²!OOアア²"
+
 --title_mc="%-ZdV`ᶠ#VaYd\0#\\`V`\0&Ye]🐱\0&Za\\pᵇ&Zq\\x\n&Zy\\●	-Y░V♥⁸#Y⬇️V●\0#V♥`♥\0-]⬇️`●⁸#]⬇️`●\0-]acpᵇ-c⬇️^q\n-c●a{	#]`cp\0#]oc●\0+>NOZ⁸+9NO_⁸+oNOZ\0&uaxcᵇ&s░z●	#ucxc\0#t░y░\0#…g…`\0+tNOZ\0!⬇️`◆d\0&◆a⬇️cᵇ-◆h⌂cᵇ#⬅️e◆i\0#…a…h\0-◆h●qᵇ-⌂v🅾️r\n+▒NUZ\0-⌂r◆x\n#◆r♪t\0#😐y😐🐱\0#…x♪u\0-😐y✽r\n#…q…h\0#…y…🐱\0#░r⬅️y\0#✽q♪i\0-ちaさxᵇ-すuく●	-ちkさx\n-ちjそv\0#せyとy\0#た`く●\0#せzす●\0#す♥く♥\0+えNOQ\0+をNz▒⁸+★Nim⁸+bNim\0+♪NQZ\0+き 웃◆\0#みaみd\0-rなnの	&fねrふ	#fふrふ\0#sひsな\0#rとnね\0#nねhね\0+X|OX\0+1|im\0+ |z⬇️\0+W|hy\0+☉N⌂…\0+お|QU\0&な🅾️のけ\0+||im\0&にかやこ\0&に◆ねけᵇ&むきゆふ\0&にきやけ\n+⧗N웃🅾️⁸&めこやひ	"
 
 color_mask = 11
 dx,tw,hp,vp=20,20,4,16
 
 enc_k,enc_o,mirror_o,max_layers = 32,-46,0,4
---mode_string = split"rect,oval,line,map,select,rectfill,ovalfill,pd_tri,pset,spr,pd_draw,pget,pd_trifill"
---dither_p = split"32768, 32736, 24544, 24416, 23392, 23391, 23135, 23131, 6747, 6731, 2635, 2571, 523, 521, 9, 1"
+mode_string = split"rect,oval,line,map,select,rectfill,ovalfill,pd_tri,pset,spr,pd_draw,pget,pd_trifill"
+dither_p = split"32768, 32736, 24544, 24416, 23392, 23391, 23135, 23131, 6747, 6731, 2635, 2571, 523, 521, 9, 1"
 pd_root={}
---[[
-function pd_init(bg_commands,string)
+
+--[[function pd_init(bg_commands,string)
   local dest_table,cmd,c_i = bg_commands,{},0
-  if (#string>0) bg_color = ord(string,1)-32 mask_color = 11
+  if ( #string>0 ) bg_color = ord(string,1)-32 mask_color = 11
   for i=2,#string do
     local o = ord(string,i)
     if c_i == 0 and o == 70 then
-
     else
       if c_i==5 then
         add(cmd, o & 15) add(cmd, (o & 240)>>4)
-        if (cmd[1] ==10) cmd[8] = cmd[7]%2==1 cmd[7] = cmd[7]\2==1
+        if (cmd[1] ==10) cmd[8] = cmd[7]%2==1 cmd[7] = flr(cmd[7]/2)==1
         if (cmd[1] ==11) add(cmd,dest_table,2) cmd[7]*=8-mirror_o cmd[8]*=8-mirror_o
         add(dest_table,cmd) cmd,c_i={},-1
       else
@@ -57,7 +57,7 @@ function pd_init(bg_commands,string)
       c_i+=1
     end
   end
-end
+end]]
 
 function pd_draw(commands,x,y,s_start,s_end,h_flip,v_flip)
   local cmd
@@ -67,7 +67,7 @@ function pd_draw(commands,x,y,s_start,s_end,h_flip,v_flip)
     for i=0,o==0 and 2 or 0,2 do cmd[p+i] = f-cmd[p+i]-o end
     cmd[n] = not cmd[n]
   end
-
+--[[
   camera(peek2(0x5f28)-x,peek2(0x5f2a)-y)
 
   for i=s_start or 1, s_end and s_end or #commands do
@@ -91,24 +91,8 @@ function pd_draw(commands,x,y,s_start,s_end,h_flip,v_flip)
   end
   deli(pd_root,#pd_root)
   camera(peek2(0x5f28)+x,peek2(0x5f2a)+y)
+  ]]
 end
-
-function pd_trifill(x1,y1,x2,y2,c)
-  local inc=sgn(y2-y1)
-  local fy=y2-y1+   inc / 2
-  for i=inc\2,fy,inc do
-    line(x1+.5,y1+i,x1+(x2-x1)*i/fy+.5,y1+i,c)
-  end
-    line(x1,y1,x2,y2)
-end
-
-function pd_tri(x1,y1,x2,y2,c)
-  line(x1,y1,x2,y2,c)
-  line(x1,y2,x2,y2,c)
-  line(x1,y2,x1,y1,c)
-end
-]]
-
 
 torso_frame = {{128}, {130}, {132}, {134}, {138}, {136}, {128,137}, {142,137}, {175,137}, {175,129}, {142,129}, {143,129},
                 {136,136}, {128,128}, {142,142},{138,0,0,0},{128,140},{128,141},
@@ -412,19 +396,16 @@ function cloud_update()
 end
 
 function cloud_draw()
-	for cloud in all(clouds) do
-        for p=1,4 do
-			local cp = cloud.parts[p]
-
-			circfill(cloud.x + cp.x, cloud.y + cp.y, cp.r-1, cloud_c1)
-        end
-
-        for p=1,4 do
-			local cp = cloud.parts[p]
-			circfill(cloud.x + cp.x + 2, cloud.y + cp.y + 2, cp.r,cloud_c2)
-
-        end
-	end
+  for cloud in all(clouds) do
+    for p=1,4 do
+      local cp = cloud.parts[p]
+      circfill(cloud.x + cp.x, cloud.y + cp.y, cp.r-1, cloud_c1)
+    end
+    for p=1,4 do
+      local cp = cloud.parts[p]
+      circfill(cloud.x + cp.x + 2, cloud.y + cp.y + 2, cp.r,cloud_c2)
+    end
+  end
 end
 
 function draw_hat(frm,x,y,flip)
@@ -449,25 +430,25 @@ function draw_hat(frm,x,y,flip)
 end
 
 function draw_hlt_bars()
-    y=8
+  local y=8
 
-    print_s("round "..round,256,y+2,white)
+  print_s("round "..round,256,y+2,7)
 
-    rectfill(0,y+0,draw_hlt_scale*max_hlt+4,y+9,indigo)
-    rectfill(1,y+1,draw_hlt_scale*max_hlt+4,y+9,dark_gray)
-    rectfill(2,y+2,2+draw_hlt_scale*max_hlt,y+7,red)
-    if(player_draw_hlt>0) rectfill(2,y+2,2+player_draw_hlt,y+7,green)
+  rectfill(0,y+0,draw_hlt_scale*max_hlt+4,y+9,13)
+  rectfill(1,y+1,draw_hlt_scale*max_hlt+4,y+9,5)
+  rectfill(2,y+2,2+draw_hlt_scale*max_hlt,y+7,8)
+  if(player_draw_hlt>0) rectfill(2,y+2,2+player_draw_hlt,y+7,11)
 
-    s=small_names[pl_id]
-    print_s(s,4,y+2,yellow)
+  s=small_names[pl_id]
+  print_s(s,4,y+2,10)
 
-    rectfill(127-draw_hlt_scale*max_hlt-4,y,127,y+9,indigo)
-    rectfill(127-draw_hlt_scale*max_hlt-3,y+1,127,y+9,dark_gray)
-    rectfill(127-2-draw_hlt_scale*max_hlt,y+2,125,y+7,red)
-    if(opponent_draw_hlt>0) rectfill(127-2-opponent_draw_hlt,y+2,125,y+7,green)
+  rectfill(127-draw_hlt_scale*max_hlt-4,y,127,y+9,13)
+  rectfill(127-draw_hlt_scale*max_hlt-3,y+1,127,y+9,5)
+  rectfill(127-2-draw_hlt_scale*max_hlt,y+2,125,y+7,8)
+  if(opponent_draw_hlt>0) rectfill(127-2-opponent_draw_hlt,y+2,125,y+7,11)
 
-    s=small_names[opp_id].." "
-    print_s(s,512,y+2,yellow)
+  s=small_names[opp_id].." "
+  print_s(s,512,y+2,10)
 end
 
 function draw_covered_card(x,y)
@@ -478,12 +459,12 @@ function draw_covered_card(x,y)
 end
 
 function draw_revealed_card(rk,x,y,flip)
-    pal_tint(black)
+    pal_tint(0)
     spr(64,x,y-8,2,1)
     spr(64,x,y+16,2,1,false,true)
     pal_default()
     spr(96+2*(rk-1),x,y,2,2,flip)
-    print(rank[rk],x+16-4*#rank[rk],y+17,dark_purple)
+    print(rank[rk],x+16-4*#rank[rk],y+17,2)
 end
 
 function draw_opponent_hand()
@@ -506,7 +487,7 @@ function draw_opponent_hand()
     y= 128-16+pl_card_offset
 
     draw_revealed_card(rk,x,y,true)
-    print(full_rank[rk],x+1,y-6,dark_purple)
+    print(full_rank[rk],x+1,y-6,2)
 end
 
 function draw_player_hand()
@@ -531,9 +512,9 @@ function draw_player_hand()
         draw_revealed_card(rk,x-x_c_ofs,y,false)
 
         if i==pl_selected_card then
-            print(full_rank[rk],x+1-x_c_ofs,y-6,dark_purple)
+            print(full_rank[rk],x+1-x_c_ofs,y-6,2)
         else
-            print(rank[rk],x+1-x_c_ofs,y-6,dark_purple)
+            print(rank[rk],x+1-x_c_ofs,y-6,2)
         end
     end
 end
@@ -693,8 +674,8 @@ function draw_stage()
     if stage >= 3 then
 
         cls(1)
-        cloud_c2 = dark_blue
-        cloud_c1 = blue
+        cloud_c2 = 1
+        cloud_c1 = 12
         cloud_draw()
 
         if (phase =="ending") clip(0,statue_y+32,127,127)
@@ -707,18 +688,18 @@ function draw_stage()
         stage_y = 58
     elseif stage == 2 then
         cls(2)
-        cloud_c2 = dark_purple
-        cloud_c1 = orange
+        cloud_c2 = 2
+        cloud_c1 = 9
         fillp(0b1010111101011111.1)
         cloud_draw()
-        rectfill(0,66,127,127,black)
+        rectfill(0,66,127,127,0)
         fillp()
         map(16,0,0,0,16,12)
         stage_y = 46
-    elseif stage == 1 then
+   elseif stage == 1 then
         cls(12)
-        cloud_c2 = white
-        cloud_c1 = light_gray
+        cloud_c2 = 7
+        cloud_c1 = 6
         cloud_draw()
         rectfill(0,44,127,127,1)
         pal(6,13)
@@ -886,55 +867,55 @@ function init_player_hand()
 end
 
 function new_round()
-    music(2)
-    init_opponent_hand()
-    init_player_hand()
-    phase = "deal"
-    auto_play_timer = max_auto_play_timer
-    --particles
-    effects = {}
-    fire_width = 3
-    fire_amount = 8
-    fatality=false
-    deal_t=0
+  music(2)
+  init_opponent_hand()
+  init_player_hand()
+  phase = "deal"
+  auto_play_timer = max_auto_play_timer
+  --particles
+  effects = {}
+  fire_width = 3
+  fire_amount = 8
+  fatality=false
+  deal_t=0
 end
 
 function new_stage(r)
-    if (not r) stage+= 1
+  if (not r) stage+= 1
 
-    if stage == 5 then
-        phase ="ending"
-        statue_y=-32
-    else
-        clouds={}
-        for i=1,8 do cloud_add(rnd(128),rnd(64)) end
+  if stage == 5 then
+    phase ="ending"
+    statue_y=-32
+  else
+    clouds={}
+    for i=1,8 do cloud_add(rnd(128),rnd(64)) end
 
-        player_wins=0
-        opponent_wins=0
+    player_wins=0
+    opponent_wins=0
 
-        if (stage >= 4) then opp_id = goro else
-        opp_id = heroes[stage]
-        end
-
-        init_decks()
-        new_round()
+    if (stage >= 4) then opp_id = goro else
+    opp_id = heroes[stage]
     end
+
+    init_decks()
+    new_round()
+  end
 end
 
 
 function pal_default()
-    pal()
-    palt(0,false)
-    palt(color_mask,true)
+  pal()
+  palt(0,false)
+  palt(color_mask,true)
 end
 
 function pal_liukang()
-    pal({[1]=0,[2]=0,[3]=0,[12]=15})
+  pal({[1]=0,[2]=0,[3]=0,[12]=15})
 end
 
 function pal_cage()
-    palt(2,true)
-    pal({[1]=14, [3]=15, [8]=4, [12]=1})
+  palt(2,true)
+  pal({[1]=14, [3]=15, [8]=4, [12]=1})
 end
 
 function pal_skorpion()
@@ -942,27 +923,35 @@ function pal_skorpion()
 end
 
 function pal_raiden()
-    pal({[0]=7 ,[2]=4 ,[3]=0 ,[4]=13 ,[5]=13 ,[8]=9 ,[9]=6 ,[10]=6 ,[12]=0})
+  pal({[0]=7 ,[2]=4 ,[3]=0 ,[4]=13 ,[5]=13 ,[8]=9 ,[9]=6 ,[10]=6 ,[12]=0})
 end
 
 function pal_reptile()
-    pal({[1]=14, [2]=3, [3]=15, [4]=5, [8]=11, [9]=3, [10]=11, [12]=0})
+  pal({[1]=14, [2]=3, [3]=15, [4]=5, [8]=11, [9]=3, [10]=11, [12]=0})
 end
 
 function pal_subzero()
-    pal({[1]=14, [2]=13, [3]=15, [4]=3, [8]=12 ,[9]=13 ,[10]=12,[12]=0})
+  pal({[1]=14, [2]=13, [3]=15, [4]=3, [8]=12 ,[9]=13 ,[10]=12,[12]=0})
 end
 
 function pal_tint(col)
-	for i=1,15 do pal(i,col) end
+  for i=1,15 do pal(i,col) end
 end
 
 function print_s(s,x,y,c)
-  if x / 512 >= 1 then x -= 384+4*#s elseif x / 256 >=1 then x -= 192+2*#s end
+  local ox=x
+  --if x == 256 then x = 64-2*#s
+  --elseif x == 512 then x = 128-4*#s
+  --end
+
+  if x / 256 == 1 then x -= (192+4/2*#s) elseif x / 256 >= 1 then x -= (384+4*#s) end
+
   ?s,x+1,y,0
-  ?s,x+1,y+1
   ?s,x,y+1
+  ?s,x+1,y+1
   ?s,x,y,c
+
+  return ox
 end
 
 function set_char(char)
@@ -1003,26 +992,22 @@ function f_draw()
     if phase != "ending" then
         y=1
         s=player_wins.." wins"
-        print_s(s,1,y,yellow)
+        print_s(s,1,y,10)
         s=opponent_wins.." wins"
-        print_s(s,512,y,yellow)
-
+        print_s(s,511,y,10)
         draw_hlt_bars()
     else
-
         draw_statue(pl_id,statue_y)
-
-        print_s(names[pl_id].." is the new",256,24,yellow)
-        print_s("mortal cards champion!",256,32,yellow)
-
+        print_s(names[pl_id].." is the new",256,24,10)
+        print_s("mortal cards champion!",256,32,10)
     end
 
-    rectfill(0,127-17-15,127,127,dark_green)
-        rect(1,127-17-14,126,126,green)
+    rectfill(0,127-17-15,127,127,3)
+        rect(1,127-17-14,126,126,11)
 
     if phase == "deal" then
 
-        --print_s(tostr(deal_t),60,40,white)
+        --print_s(tostr(deal_t),60,40,7)
 
         if deal_t>0 then
             for i=1,#player_hand do
@@ -1046,9 +1031,9 @@ function f_draw()
             pal_default()
         end
 
-        print_s("fight!",256,24,yellow)
+        print_s("fight!",256,24,10)
 
-    elseif phase =="end" then
+    elseif phase =="win" then
 
         if player_hlt==opponent_hlt then
             s="draw"
@@ -1063,21 +1048,21 @@ function f_draw()
         end
 
         y=24
-        print_s(s,256,y,white)
-        if (fatality)   print_s("fatality!",256,y+16,red)
+        print_s(s,256,y,7)
+        if (fatality) print_s("fatality!",256,y+16,8)
 
         if opponent_wins==2 then
-             print_s("game over",256,y+8,red)
+             print_s("game over",256,y+8,8)
         elseif player_wins<2 and round == 3 then
-            print_s("rematch",256,y+8,yellow)
+            print_s("rematch",256,y+8,10)
         end
 
     elseif phase != "ending" then
         s=tostr(flr(auto_play_timer/30)+1)
 
-        if (phase == "fatality")  s="8" print_s("finish him!",256,32,red)
+        if (phase == "fatality") s="8" print_s("finish him!",256,32,8)
 
-        print_s(s,256,1,red)
+        print_s(s,256,1,8)
 
         if #player_hand>0 then
         draw_player_hand()
@@ -1088,51 +1073,49 @@ function f_draw()
         end
     end
 
-        camera( shake_x, shake_y )
+      camera( shake_x, shake_y )
 
-        pl_x=46
-        y=stage_y
-        draw_player(pl_id,pl_x,y,false)
+      pl_x=46
+      y=stage_y
+      draw_player(pl_id,pl_x,y,false)
 
-        opp_x=66
-        y=stage_y
-        draw_opponent(opp_id,opp_x,y,true)
+      opp_x=66
+      y=stage_y
+      draw_opponent(opp_id,opp_x,y,true)
 
-        if (phase=="end") draw_fx()
+      if (phase=="win") draw_fx()
 
-        if sp_radius>0 then
-            if pl_anim == 8 then
-                if pl_id == raiden then draw_raiden_special(y) else
-                    circfill(opp_x-4,stage_y+12,sp_radius,(sp_radius%2)*sp_color[pl_id]+7)
-                end
-            else
-                if opp_id == raiden then
-                    draw_raiden_special(y)
-                else
-                    circfill(opp_x-2,stage_y+12,sp_radius,(sp_radius%2)*sp_color[opp_id]+7)
-                end
-            end
-            sp_radius+=1
-            if (sp_radius>sp_max_radius) sp_radius = 0
-        end
+      if sp_radius>0 then
+          if pl_anim == 8 then
+              if pl_id == raiden then draw_raiden_special(y) else
+                  circfill(opp_x-4,stage_y+12,sp_radius,(sp_radius%2)*sp_color[pl_id]+7)
+              end
+          else
+              if opp_id == raiden then
+                  draw_raiden_special(y)
+              else
+                  circfill(opp_x-2,stage_y+12,sp_radius,(sp_radius%2)*sp_color[opp_id]+7)
+              end
+          end
+          sp_radius+=1
+          if (sp_radius>sp_max_radius) sp_radius = 0
+      end
 
     camera()
-
-
 end
 
 function draw_raiden_special(y)
   local r=rnd(2*8)-8
-    line(pl_x+12,y+16,pl_x+10+8,y+16+r,white)
+    line(pl_x+12,y+16,pl_x+10+8,y+16+r,7)
     local r2=rnd(2*8)-8
-    line(pl_x+10+8,y+16+r, opp_x,y+16+r2,white)
-    line(opp_x,y+16+r2,opp_x+8,y+16,white)
+    line(pl_x+10+8,y+16+r, opp_x,y+16+r2,7)
+    line(opp_x,y+16+r2,opp_x+8,y+16,7)
 
     local r=rnd(2*8)-8
-    line(pl_x+12,y+16,pl_x+10+8,y+16+r,blue)
+    line(pl_x+12,y+16,pl_x+10+8,y+16+r,12)
     local r2=rnd(2*8)-8
-    line(pl_x+10+8,y+16+r, opp_x,y+16+r2,blue)
-    line(opp_x,y+16+r2,opp_x+8,y+16,blue)
+    line(pl_x+10+8,y+16+r, opp_x,y+16+r2,12)
+    line(opp_x,y+16+r2,opp_x+8,y+16,12)
 end
 
 function f_update()
@@ -1182,7 +1165,7 @@ function f_update()
                 if player_hlt==0 or opponent_hlt==0 then
                     if #player_hand == 0 or fatality then
                         increase_wins()
-                        phase = "end"
+                        phase = "win"
                         sfx(4)
                     else--if opponent_hlt==0 then
                        phase = "fatality"
@@ -1200,7 +1183,7 @@ function f_update()
             if (opponent_draw_hlt>0 and opponent_draw_hlt> draw_hlt_scale*opponent_hlt) opponent_draw_hlt-=1
         end
 
-    elseif phase == "end" then
+    elseif phase == "win" then
         update_fx()
         if btnp() then
             round+=1
@@ -1261,7 +1244,7 @@ function f_update()
         if #player_hand==0 then
 
             increase_wins()
-            phase = "end"
+            phase = "win"
             sfx(4)
 
         elseif btnp(🅾️) or auto_play_timer == 0 then
@@ -1289,76 +1272,42 @@ function f_update()
             pl_selected_card+=1 if(pl_selected_card>#player_hand) pl_selected_card=1
         end
     end
-
 end
-
-function t_update()
-  local w = 250
-  ms_time = flr(time()*1000)
-  if title_dy>=64 then
-    if btnp(🅾️) then
-      if menu==0 then
-        menu = 1
-      else
-        sfx(4)
-        music(0)
-        _update = s_update _draw= s_draw
-      end
-    elseif btnp(⬇️) then
-      mode = (mode+1)%3
-    elseif btnp(⬆️) then
-      mode = (mode-1)%3
-    end
-  elseif ms_time<w+125 then  t_col = 0
-  elseif ms_time<w+250 then t_col = 1
-  elseif ms_time<w+350 then t_col = 13
-  elseif ms_time<w+450 then t_col = 14
-  elseif ms_time<w+550 then t_col = 15
-  elseif ms_time>w+1250 and title_dy< 64 then
-    title_dy+=8 if(title_dy>=64) sfx(3)
-  end
-end
-
 
 function t_draw()
   local my,rx = 80, t()*50 % 210
   cls(15)
-  --pal({130,2,136,8,131,3,11,4,137,9,10,5,13,6,7},1)
-    if title_dy==64 then
-      for j=0,1 do
+  pal({130,2,136,8,131,3,11,4,137,9,10,5,13,6,7},1)
+  if title_dy==64 then
+    for j=0,1 do
       for i=0,16 do
         line(-48-j*32+i+rx,  0,-8-j*32+i+rx,127,14+1.1*cos(i/16))
         line(  8-j*16+flr(i/2)+rx,0, 48-j*16+flr(i/2)+rx, 127,14+1.1*cos(i/16))
       end
     end
-    --pd_draw(shapes_bg,0,0)
+    pd_draw(shapes_bg,0,0)
     rectfill(45,2,82,16,1)
     print_s("tHE rOBOz",256,3,15)
-
-      if menu==0 then
-        if(ms_time%1000 < 500) print_s("press 🅾️ to start ",256,110,7)
-      else
-        for i=0,7 do draw_covered_card(-16+(i*18+flr(ms_time/100))%143 ,50) end
-        for y= 1,3 do
-          --print_s({"p 1 vs cpu","p 1 vs p 2","settings"}[y],256,my+12*(y-1),11)
-        end
-        print_s("◆            ◆  ",256,my+12*mode,11)
-      end
-    else
-      cls(0)
-      print_s("tHErOBOz PRESENTS",256,61,t_col)
-    end
-
     if menu==0 then
-      --pd_draw(shapes_mortal,0,-64+title_dy,1,58)
-      --pd_draw(shapes_cards, -3,66-title_dy,59,#shapes_cards)
+      if(ms_time%1000 < 500) print_s("press 🅾️ to start ",256,110,7)
+    else
+      for i=0,7 do draw_covered_card(-16+(i*18+flr(ms_time/100))%143 ,50) end
+      for y= 1,3 do
+        local s={"p 1 vs cpu","p 1 vs p 2","settings"}
+        print_s(s[y],256,my+12*(y-1),11)
+      end
+      print_s("◆            ◆  ",256,my+12*mode,11)
+    end
+  else
+    cls(0)
+    print_s("tHErOBOz PRESENTS",256,61,t_col)
+  end
+
+  if menu==0 then
+    pd_draw(shapes_mortal,0,-64+title_dy,1,58)
+    pd_draw(shapes_cards, -3,66-title_dy,59,#shapes_cards)
   end
 end
-
-
-
-
-
 
 function s_update()
     ms_time = flr(time()*1000)
@@ -1399,7 +1348,7 @@ function s_draw()
     local x_pad=20
     local py = 26
 
-    cls(dark_gray)
+    cls(5)
 
     --draw bg
 
@@ -1407,18 +1356,18 @@ function s_draw()
     for y=0,127,2 do
         srand(y)
         for x=0,127,2 do
-            if(rnd(4)>3) pset(x,y,indigo)
-            if(rnd(4)<1) pset(x,y,black)
+            if(rnd(4)>3) pset(x,y,13)
+            if(rnd(4)<1) pset(x,y,0)
         end
     end
 
-    rectfill(3,py-5,125,py+29,dark_gray)
-    rect(3,py-5,125,py+29,light_gray)
-    rect(3,py-6,125,py+28,black)
+    rectfill(3,py-5,125,py+29,5)
+    rect(3,py-5,125,py+29,6)
+    rect(3,py-6,125,py+28,0)
     --
 
-    print_s("choose your fighter",256,8,yellow)
-    print_s(names[pl_id],256,98,yellow)
+    print_s("choose your fighter",256,8,10)
+    print_s(names[pl_id],256,98,10)
 
     for x= 0,5 do
         rectfill(x_pad*x+6,py,x_pad*x+16+6,py+24,port_colors[x+1])
@@ -1429,13 +1378,13 @@ function s_draw()
         draw_torso(x+1,portrait[x+1],prx,pry,false)
         pal_default()
         if (x+1==raiden) draw_hat(portrait[x+1],prx,pry)
-        if (x==pl_id-1 and ms_time%500 < 250) rect(x_pad*x+5,py-1,x_pad*x+16+7,py+25,yellow)
+        if (x==pl_id-1 and ms_time%500 < 250) rect(x_pad*x+5,py-1,x_pad*x+16+7,py+25,10)
     end
 
     x=56
     y=62
     draw_player(pl_id,x,y)
-    if(ms_time%1000 < 500) print_s("press 🅾️ to fight ",256,117,green)
+    if(ms_time%1000 < 500) print_s("press 🅾️ to fight ",256,117,11)
 end
 
 function add_fx(x,y,die,dx,dy,grav,grow,shrink,r,col)
@@ -1470,7 +1419,7 @@ function blood(x,y,w,c_table,num)
             false,     -- grow
             true,      -- shrink
             2,         -- radius
-            red    -- color_table
+            8    -- color_table
         )
     end
 end
@@ -1511,6 +1460,51 @@ function draw_fx()
         end
     end
 end
+
+function pd_trifill(x1,y1,x2,y2,c)
+  local inc=sgn(y2-y1)
+  local ic =  inc\2
+  local fy=y2-y1+cn
+  for i=ic,fy,inc do
+    line(x1+.5,y1+i,x1+(x2-x1)*i/fy+.5,y1+i,c)
+  end
+    line(x1,y1,x2,y2)
+end
+
+function pd_tri(x1,y1,x2,y2,c)
+  line(x1,y1,x2,y2,c)
+  line(x1,y2,x2,y2,c)
+  line(x1,y2,x1,y1,c)
+end
+
+
+function t_update()
+  local w = 250
+  ms_time = flr(time()*1000)
+  if title_dy>=64 then
+    if btnp(🅾️) then
+      if menu==0 then
+        menu = 1
+      else
+        sfx(4)
+        music(0)
+        _update = s_update _draw= s_draw
+      end
+    elseif btnp(⬇️) then
+        mode = (mode+1)%3
+    elseif btnp(⬆️) then
+        mode = (mode-1)%3
+    end
+  elseif ms_time<w+125 then  t_col = 0
+  elseif ms_time<w+250 then t_col = 1
+  elseif ms_time<w+350 then t_col = 13
+  elseif ms_time<w+450 then t_col = 14
+  elseif ms_time<w+550 then t_col = 15
+  elseif ms_time>w+1250 and title_dy< 64 then
+    title_dy+=8 if(title_dy>=64) sfx(3)
+  end
+end
+
 __gfx__
 bbbbbb49994990bbbbbbbbb4994990bbbbbbbbbb2424904bb05524994bbbbbbbbbbb244222bbbbbbbbbbbbbbbbbbb0d5bbbbbbbbbbbbbbbb00224444bbbbbbbb
 bb044994942440bbbbb04499442440bbbbbbbbb49994294bbb52059984449999bbb2424908bbbbbbbbbbbbbbbbbb0d550bbbbbbbbbbbbbbb02244444bbbbbbbb

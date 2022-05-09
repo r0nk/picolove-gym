@@ -1,5 +1,4 @@
 local flr=math.floor
-local pack_format="ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" --64 float numbers
 
 -- TODO: Remove this
 local scrblitMesh=love.graphics.newMesh(128, "points")
@@ -353,10 +352,10 @@ function api.line(x0, y0, x1, y1, col)
 end
 
 function api.pal(c0, c1, p)
-	if c0==nil then
-		local __palette_modified=false
-		local __display_modified=false
-		local __alpha_modified=false
+  local __palette_modified=false
+  local __display_modified=false
+  local __alpha_modified=false
+  if c0==nil then
 		for i=0, 15 do
 			if pico8.draw_palette[i]~=i then
 				pico8.draw_palette[i]=i
@@ -372,34 +371,45 @@ function api.pal(c0, c1, p)
 				__alpha_modified=true
 			end
 		end
-		if __palette_modified then
-			pico8.draw_shader:send('palette', shdr_unpack(pico8.draw_palette))
-			pico8.sprite_shader:send('palette', shdr_unpack(pico8.draw_palette))
-			pico8.text_shader:send('palette', shdr_unpack(pico8.draw_palette))
-		end
-		if __display_modified then
-			pico8.display_shader:send('palette', shdr_unpack(pico8.display_palette))
-		end
-		if __alpha_modified then
-			pico8.sprite_shader:send('transparent', shdr_unpack(pico8.pal_transparent))
-		end
+  elseif type(c0)=="table" then
+    if not c1 or c1==0 then
+      __palette_modified=true
+      for i,v in pairs(c0) do
+        pico8.draw_palette[i]=v or i
+      end
+    elseif c1==1 then
+      __display_modified = true
+      for i,v in pairs(c0) do
+       pico8.display_palette[i]=v and pico8.palette[v+1] or pico8.palette[i+1]
+      end
+    end
 	elseif p==1 and c1~=nil then
 		c0=flr(c0)%16
 		c1=flr(c1)%16
 		if pico8.draw_palette[c0]~=pico8.palette[c1+1] then
 			pico8.display_palette[c0]=pico8.palette[c1+1]
-			pico8.display_shader:send('palette', shdr_unpack(pico8.display_palette))
+			__display_modified = true
 		end
 	elseif c1~=nil then
 		c0=flr(c0)%16
 		c1=flr(c1)%16
 		if pico8.draw_palette[c0]~=c1 then
 			pico8.draw_palette[c0]=c1
-			pico8.draw_shader:send('palette', shdr_unpack(pico8.draw_palette))
-			pico8.sprite_shader:send('palette', shdr_unpack(pico8.draw_palette))
-			pico8.text_shader:send('palette', shdr_unpack(pico8.draw_palette))
+			__palette_modified = true
 		end
 	end
+
+  if __palette_modified then
+    pico8.draw_shader:send('palette', shdr_unpack(pico8.draw_palette))
+    pico8.sprite_shader:send('palette', shdr_unpack(pico8.draw_palette))
+    pico8.text_shader:send('palette', shdr_unpack(pico8.draw_palette))
+  end
+  if __display_modified then
+    pico8.display_shader:send('palette', shdr_unpack(pico8.display_palette))
+  end
+  if __alpha_modified then
+    pico8.sprite_shader:send('transparent', shdr_unpack(pico8.pal_transparent))
+  end
 end
 
 function api.palt(c, t)
@@ -415,7 +425,9 @@ function api.palt(c, t)
 end
 
 function api.fillp(p)
+  p=p or 0
 	-- TODO: oh jeez
+  pico8.draw_shader:send('fillp', p)
 end
 
 function api.map(cel_x, cel_y, sx, sy, cel_w, cel_h, bitmask)
@@ -816,7 +828,7 @@ function api.memcpy(dest_addr, source_addr, len)
 		love.graphics.draw(scrblitMesh)
 		setColor(pico8.color)
 	end
-	__scrblit, __scrimg=nil
+	__scrblit, __scrimg=nil,nil
 end
 
 function api.memset(dest_addr, val, len)
@@ -988,9 +1000,15 @@ function api.radio()
 	return nil, 0
 end
 
+function api.split(s,g) --@todo: incomplete, see manual
+  g=tostring(g) or","
+  local t={}
+  s:gsub("."..g,function(c) table.insert(t,c) end)
+end
+
 function api.btn(i, p)
-	if i~=nil or p~=nil then
-		p=p or 0
+  p = p or 0
+	if i~=nil then
 		if p<0 or p>1 then
 			return false
 		end
@@ -1006,8 +1024,8 @@ function api.btn(i, p)
 end
 
 function api.btnp(i, p)
-	if i~=nil or p~=nil then
-		p=p or 0
+  p = p or 0
+	if i~=nil then
 		if p<0 or p>1 then
 			return false
 		end
@@ -1032,13 +1050,13 @@ function api.btnp(i, p)
 	end
 end
 
+local pack_format="ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" --64 float numbers
 function api.cartdata(id)
 	if pico8.cart_id then
 		warning("cartdata() can only be called once")
 		return false
 	end
 	local filename=id..".lua"
-
   	if love.filesystem.getInfo(filename, "file") then
 		local data=love.filesystem.read(filename)
 		pico8.cartdata={love.data.unpack(pack_format, data)}
@@ -1087,12 +1105,9 @@ function api.dset(index, value)
 		warning('cartdata index out of range')
 		return 0
 	end
-
 	pico8.cartdata[index]=value
-
   local data=love.data.pack("string", pack_format ,unpack(pico8.cartdata))
   local ok,err=love.filesystem.write(pico8.cart_id..".lua", data)
-
 	if not ok then
 		error(err)
 	end
@@ -1173,7 +1188,7 @@ function api.all(a)
 	if a==nil or #a==0 then
 		return function() end
 	end
-	local i, li=1
+	local i, li=1,nil
 	return function()
 		if (a[i]==li) then i=i+1 end
 		while(a[i]==nil and i<=#a) do i=i+1 end
