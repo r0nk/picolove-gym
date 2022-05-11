@@ -508,6 +508,7 @@ function api.sset(x, y, c)
 end
 
 function api.music(n, fade_len, channel_mask)
+  n = n or 0
 	if n==-1 then
 		if pico8.current_music then
 			for i=0, 3 do
