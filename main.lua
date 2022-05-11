@@ -383,9 +383,6 @@ local function touchcheck(i, x, y)
 	end
 end
 
-local function isCtrlOrGuiDown()
-	return (love.keyboard.isDown('lctrl') or love.keyboard.isDown('lgui') or love.keyboard.isDown('rctrl') or love.keyboard.isDown('rgui'))
-end
 
 local function update_buttons()
 	local init, loop=pico8.fps/2, pico8.fps/7.5
@@ -649,6 +646,10 @@ function update_audio(buffer)
 	end
 end
 
+local function isCtrlOrGuiDown()
+	return (love.keyboard.isDown('lctrl') or love.keyboard.isDown('lgui') or love.keyboard.isDown('rctrl') or love.keyboard.isDown('rgui'))
+end
+
 function love.keypressed(key)
 
 	if key=='r' and isCtrlOrGuiDown() then
@@ -698,10 +699,9 @@ function love.keypressed(key)
 			log('no active recording')
 		end
 
-		elseif cart and pico8.cart._keydown then
-			return pico8.cart._keydown(key)
-		end
-	end
+  elseif cart and pico8.cart._keydown then
+    return pico8.cart._keydown(key)
+  end
 end
 
 function love.keyreleased(key)
@@ -780,7 +780,7 @@ function love.run()
 			host_time=host_time+dt
 			if paused then
 			else
-				if love.update then love.update(dt) end -- will pass 0 if love.timer is disabled
+				if love.update then love.update(frametime) end -- will pass 0 if love.timer is disabled
 			end
 			dt=dt-frametime
 			render=true
