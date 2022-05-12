@@ -1,7 +1,5 @@
 pico8={
 	fps=30,
-	frames=0,
-	pal_transparent={},
 	resolution={128, 128},
 	palette={
 		{0,  0,  0,  255},
@@ -35,14 +33,14 @@ pico8={
 		counter=0
 	},
 	kbdbuffer={},
-  padmap={
-    [0]={'dpleft'},
-    [1]={'dpright'},
-    [2]={'dpup'},
-    [3]={'dpdown'},
-    [4]={'a', 'y'},
-    [5]={'b', 'x'}
-  },
+	padmap={
+		[0]={'dpleft'},
+		[1]={'dpright'},
+		[2]={'dpup'},
+		[3]={'dpdown'},
+		[4]={'a', 'y'},
+		[5]={'b', 'x'}
+	},
 	keymap={
 		[0]={
 			[0]={'left'},
@@ -90,6 +88,9 @@ local osc
 local host_time=0
 local retro_mode=false
 local paused=false
+local paused_selected=0
+local paused_menu=nil
+local muted=false
 local mobile=false
 local api, cart, gif
 
@@ -100,7 +101,6 @@ local channels=1
 local bits=16
 
 log=print
---log=function() end
 
 function shdr_unpack(thing)
 	return unpack(thing, 0, 15)
@@ -133,7 +133,7 @@ function _load(filename)
 		end
 	end
 	cartname=filename
-
+	pico8.frames=0
 	pico8.camera_x=0
 	pico8.camera_y=0
 	love.graphics.origin()
@@ -159,6 +159,12 @@ function _load(filename)
 	else
 		setfps(30)
 	end
+
+  paused=false
+  paused_selected=0
+
+	-- We don't want the first frame's dt to include time taken by _load().
+	if love.timer then log(love.timer.step()) end
 end
 
 function love.resize(w, h)
@@ -305,49 +311,55 @@ function love.load(argv)
 	end
 
 	pico8.draw_shader=love.graphics.newShader(pishaderfix([[
-extern float palette[16];
+    extern float palette[16];
 
-vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
-	int index=int(color.r*15.0+0.5);
-	ifblock(palette);
-	return vec4(palette[index]/15.0, 0.0, 0.0, 1.0);
-}]]))
+    vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
+      int index=int(color.r*15.0+0.5);
+      ifblock(palette);
+      return vec4(palette[index]/15.0, 0.0, 0.0, 1.0);
+    }]]))
 	pico8.draw_shader:send('palette', shdr_unpack(pico8.draw_palette))
 
 	pico8.sprite_shader=love.graphics.newShader(pishaderfix([[
-extern float palette[16];
-extern float transparent[16];
+    extern float palette[16];
+    extern float transparent[16];
 
-vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
-	int index=int(Texel(texture, texture_coords).r*15.0+0.5);
-	ifblock(palette);
-	ifblock(transparent);
-	return vec4(palette[index]/15.0, 0.0, 0.0, transparent[index]);
-}]]))
+    vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
+      int index=int(Texel(texture, texture_coords).r*15.0+0.5);
+      ifblock(palette);
+      ifblock(transparent);
+      return vec4(palette[index]/15.0, 0.0, 0.0, transparent[index]);
+    }]]))
 	pico8.sprite_shader:send('palette', shdr_unpack(pico8.draw_palette))
 	pico8.sprite_shader:send('transparent', shdr_unpack(pico8.pal_transparent))
 
 	pico8.text_shader=love.graphics.newShader(pishaderfix([[
-extern float palette[16];
+    extern float palette[16];
 
-vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
-	vec4 texcolor=Texel(texture, texture_coords);
-	int index=int(color.r*15.0+0.5);
-	ifblock(palette);
-	return vec4(palette[index]/15.0, 0.0, 0.0, texcolor.a);
-}]]))
+    vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
+      vec4 texcolor=Texel(texture, texture_coords);
+      int index=int(color.r*15.0+0.5);
+      ifblock(palette);
+      return vec4(palette[index]/15.0, 0.0, 0.0, texcolor.a);
+    }]]))
 	pico8.text_shader:send('palette', shdr_unpack(pico8.draw_palette))
 
 	pico8.display_shader=love.graphics.newShader(pishaderfix([[
-extern vec4 palette[16];
+    extern vec4 palette[16];
 
-vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
-	int index=int(Texel(texture, texture_coords).r*15.0+0.5);
-	ifblock(palette);
-	// lookup the colour in the palette by index
-	return palette[index]/255.0;
-}]]))
+    vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
+      int index=int(Texel(texture, texture_coords).r*15.0+0.5);
+      ifblock(palette);
+      // lookup the colour in the palette by index
+      return palette[index]/255.0;
+    }]]))
 	pico8.display_shader:send('palette', shdr_unpack(pico8.display_palette))
+
+  pico8.sysfont_shader=love.graphics.newShader(pishaderfix([[
+    vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
+      vec4 texcolor=Texel(texture, texture_coords);
+      return vec4(color.r, color.g, color.b, texcolor.a);
+    }]]))
 
 	api=require("api")
 	cart=require("cart")
@@ -390,8 +402,8 @@ local function update_buttons()
 	for p=0, 1 do
 		local keymap=pico8.keymap[p]
 		local keypressed=pico8.keypressed[p]
-    local joysticks=love.joystick.getJoysticks()
-    local tot_pads = love.joystick.getJoystickCount( )
+		local joysticks=love.joystick.getJoysticks()
+		local tot_pads = love.joystick.getJoystickCount( )
 		for i=0, 5 do
 			local btn=false
 			for _, testkey in pairs(keymap[i]) do
@@ -401,14 +413,14 @@ local function update_buttons()
 				end
 			end
 
-      if not btn and p+1 <= tot_pads and joysticks[p+1]:isGamepad() then
-        for _, testkey in pairs(pico8.padmap[i]) do
-          if joysticks[p+1]:isGamepadDown(testkey) then
-            btn=true
-            break
-          end
-        end
-      end
+			if not btn and p+1 <= tot_pads and joysticks[p+1]:isGamepad() then
+				for _, testkey in pairs(pico8.padmap[i]) do
+					if joysticks[p+1]:isGamepadDown(testkey) then
+						btn=true
+						break
+					end
+				end
+			end
 
 			if not btn and mobile and p==0 then
 				for _, id in pairs(touches) do
@@ -450,6 +462,16 @@ function restore_camera()
 	love.graphics.translate(-pico8.camera_x, -pico8.camera_y)
 end
 
+local function menu_print(str,x,y)
+	love.graphics.setShader(pico8.sysfont_shader)
+	str=tostring(str):gsub("[%z\1-\9\11-\31\154-\255]", ""):gsub("[\128-\153]", "\194%1").."\n"
+	local size=0
+	for line in str:gmatch("(.-)\n") do
+		love.graphics.print(line, x, y+size)
+		size=size+6
+	end
+end
+
 function flip_screen()
 	love.graphics.setShader(pico8.display_shader)
 	love.graphics.setCanvas()
@@ -464,6 +486,22 @@ function flip_screen()
 	else
 		love.graphics.draw(pico8.screen, xpadding, ypadding, 0, scale, scale)
 	end
+
+  if paused then --draw pico8 paused menu bypassing any userdefined palette
+    love.graphics.setShader()
+    love.graphics.scale(scale,scale)
+    love.graphics.setColor(0, 0, 0, 1)
+    love.graphics.rectangle("fill", 24, 44, 130-48, 118-76)
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.rectangle("fill", 25, 45, 128-48, 116-76)
+    love.graphics.setColor(0, 0, 0, 1)
+    love.graphics.rectangle("fill", 26, 46, 126-48, 114-76)
+    love.graphics.setColor(1, 1, 1, 1)
+    for l=0,3 do
+      if l==paused_selected then menu_print(">", 28, 50+8*l) end
+      menu_print(paused_menu[l+1][1], 35, 50+8*l)
+    end
+  end
 
 	if gif_recording then
 		love.graphics.setCanvas(gif_canvas)
@@ -648,47 +686,73 @@ local function isCtrlOrGuiDown()
 end
 
 function love.keypressed(key)
-	if cart and pico8.cart._keydown then
-		return pico8.cart._keydown(key)
-	end
-	if key=='r' and isCtrlOrGuiDown() then
-		_load()
-	elseif key=='q' and isCtrlOrGuiDown() then
-		love.event.quit()
-	elseif key=='v' and isCtrlOrGuiDown() then
-		pico8.clipboard=love.system.getClipboardText()
-	elseif key=='pause' then
-		paused=not paused
-	elseif key=='f1' or key=='f6' then
-		-- screenshot
-		local filename=cartname..'-'..os.time()..'.png'
-		love.graphics.captureScreenshot(filename)
-		log('saved screenshot to', filename)
-	elseif key=='f3' or key=='f8' then
-		-- start recording
-		if gif_recording==nil then
-			local err
-			gif_recording, err=gif.new(cartname..'-'..os.time()..'.gif')
-			if not gif_recording then
-				log('failed to start recording: '..err)
-			else
-				gif_canvas=love.graphics.newCanvas(pico8.resolution[1]*2, pico8.resolution[2]*2)
-				log('starting record ...')
-			end
-		else
-			log('recording already in progress')
-		end
-	elseif key=='f4' or key=='f9' then
-		-- stop recording and save
-		if gif_recording~=nil then
-			gif_recording:close()
-			log('saved recording to '..gif_recording.filename)
-			gif_recording=nil
-			gif_canvas=nil
-		else
-			log('no active recording')
-		end
-	end
+  log(key)
+  if paused then
+    if key=='z' or key=='x' or key=='c' or key=='v' or key=='return' then
+      local handler = paused_menu[paused_selected+1][2]
+      if handler then handler() end
+    elseif key=='up' then
+      paused_selected=(paused_selected-1)%4
+    elseif key=='down' then
+      paused_selected=(paused_selected+1)%4
+    elseif key=='pause' or key=='p' then
+      paused=false
+    end
+  else
+    if key=='r' and isCtrlOrGuiDown() then
+      api.music()
+      _load()
+    elseif key=='q' and isCtrlOrGuiDown() then
+      love.event.quit()
+    elseif key=='v' and isCtrlOrGuiDown() then
+      pico8.clipboard=love.system.getClipboardText()
+    elseif key=='pause' or key=='p' or key=='return' then
+      local function p_label()
+        if muted then return "off" else return "on" end
+    end
+    paused=true
+    paused_selected = 0
+    paused_menu={
+      {"continue", function() paused=false end},
+      {"----", nil},
+      {"sound "..p_label(), function() muted=not muted paused_menu[3][1]="sound "..p_label() end},
+      {"reset cart", function() api.music() _load() end}
+    }
+  	elseif key=='m' and isCtrlOrGuiDown() then
+		  muted=not muted
+    elseif key=='f1' or key=='f6' then
+      -- screenshot
+      local filename=cartname..'-'..os.time()..'.png'
+      love.graphics.captureScreenshot(filename)
+      log('saved screenshot to', filename)
+    elseif key=='f3' or key=='f8' then
+      -- start recording
+      if gif_recording==nil then
+        local err
+        gif_recording, err=gif.new(cartname..'-'..os.time()..'.gif')
+        if not gif_recording then
+          log('failed to start recording: '..err)
+        else
+          gif_canvas=love.graphics.newCanvas(pico8.resolution[1]*2, pico8.resolution[2]*2)
+          log('starting record ...')
+        end
+      else
+        log('recording already in progress')
+      end
+    elseif key=='f4' or key=='f9' then
+      -- stop recording and save
+      if gif_recording~=nil then
+        gif_recording:close()
+        log('saved recording to '..gif_recording.filename)
+        gif_recording=nil
+        gif_canvas=nil
+      else
+        log('no active recording')
+      end
+    elseif cart and pico8.cart._keydown then
+      return pico8.cart._keydown(key)
+    end
+  end
 end
 
 function love.keyreleased(key)
@@ -739,9 +803,6 @@ function love.run()
 
 	if love.load then love.load(love.arg.parseGameArguments(arg), arg) end
 
-	-- We don't want the first frame's dt to include time taken by love.load.
-	if love.timer then love.timer.step() end
-
 	local dt=0
 
 	-- Main loop time.
@@ -752,7 +813,7 @@ function love.run()
 			love.event.pump()
 			love.graphics.setCanvas(pico8.screen) -- TODO: Rework this
 			for name, a, b, c, d, e, f in love.event.poll() do
-				if name == "quit" then
+				if name=="quit" then
 					if not love.quit or not love.quit() then
 						return a or 0
 					end
@@ -778,23 +839,20 @@ function love.run()
 
 		if render and love.graphics and love.graphics.isActive() then
 			love.graphics.origin()
-			if paused then
-				api.rectfill(64-4*4, 60, 64+4*4-2, 64+4+4, 1)
-				api.print("paused", 64-3*4, 64, (host_time*20)%8<4 and 7 or 13)
-			else
 				if love.draw then love.draw() end
-			end
 			-- draw the contents of pico screen to our screen
 			flip_screen()
 			-- reset mouse wheel
 			pico8.mwheel=0
 		end
 
+	if not muted and not paused then
 		for i=1, pico8.audio_source:getFreeBufferCount() do
 			update_audio(pico8.audio_buffer)
 			pico8.audio_source:queue(pico8.audio_buffer)
 			pico8.audio_source:play()
 		end
+	end
 
 		if love.timer then love.timer.sleep(0.001) end
 	end
