@@ -66,6 +66,7 @@ pico8={
 	draw_palette={},
 	display_palette={},
 	pal_transparent={},
+  fillp = {[0]=1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
 }
 
 require("strict")
@@ -311,14 +312,36 @@ function love.load(argv)
 	end
 
 	pico8.draw_shader=love.graphics.newShader(pishaderfix([[
-    extern float palette[16];
+		extern float palette[16];
+		extern float fillp[16];
+		extern float opaque;
 
-    vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
-      int index=int(color.r*15.0+0.5);
-      ifblock(palette);
-      return vec4(palette[index]/15.0, 0.0, 0.0, 1.0);
-    }]]))
+		vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
+			int index=int(color.r*15.0+0.5);
+			ifblock(palette);
+			ifblock(fillp);
+			ifblock(opaque);
+
+			int i = int(mod(screen_coords.y,4))*4+int(mod(screen_coords.x,4));
+
+			float alpha = fillp[i];
+
+      if (opaque == 0) {
+        return vec4(palette[index]/15.0, 0.0, 0.0, alpha);
+      }
+      else if (alpha == 1) {
+        return vec4(palette[index]/15.0, 0.0, 0.0, 1);
+      }
+      else {
+        return vec4(0,0,0,1);
+      }
+
+			return vec4(palette[index]/15.0, 0.0, opaque, alpha);
+
+		}]]))
 	pico8.draw_shader:send('palette', shdr_unpack(pico8.draw_palette))
+	pico8.draw_shader:send('fillp', shdr_unpack(pico8.fillp))
+  pico8.draw_shader:send('opaque', 1)
 
 	pico8.sprite_shader=love.graphics.newShader(pishaderfix([[
     extern float palette[16];

@@ -344,10 +344,10 @@ function api.line(x0, y0, x1, y1, col)
 end
 
 function api.pal(c0, c1, p)
+	local __palette_modified=false
+	local __display_modified=false
+	local __alpha_modified=false
 	if c0==nil then
-		local __palette_modified=false
-		local __display_modified=false
-		local __alpha_modified=false
 		for i=0, 15 do
 			if pico8.draw_palette[i]~=i then
 				pico8.draw_palette[i]=i
@@ -363,33 +363,44 @@ function api.pal(c0, c1, p)
 				__alpha_modified=true
 			end
 		end
-		if __palette_modified then
-			pico8.draw_shader:send('palette', shdr_unpack(pico8.draw_palette))
-			pico8.sprite_shader:send('palette', shdr_unpack(pico8.draw_palette))
-			pico8.text_shader:send('palette', shdr_unpack(pico8.draw_palette))
-		end
-		if __display_modified then
-			pico8.display_shader:send('palette', shdr_unpack(pico8.display_palette))
-		end
-		if __alpha_modified then
-			pico8.sprite_shader:send('transparent', shdr_unpack(pico8.pal_transparent))
+	elseif type(c0)=="table" then
+		if not c1 or c1==0 then
+			__palette_modified=true
+			for i,v in pairs(c0) do
+				pico8.draw_palette[i]=v or i
+			end
+		elseif c1==1 then
+			__display_modified = true
+			for i,v in pairs(c0) do
+			 pico8.display_palette[i]=v and pico8.palette[v+1] or pico8.palette[i+1]
+			end
 		end
 	elseif p==1 and c1~=nil then
 		c0=flr(c0)%16
 		c1=flr(c1)%16
 		if pico8.draw_palette[c0]~=pico8.palette[c1+1] then
 			pico8.display_palette[c0]=pico8.palette[c1+1]
-			pico8.display_shader:send('palette', shdr_unpack(pico8.display_palette))
+			__display_modified = true
 		end
 	elseif c1~=nil then
 		c0=flr(c0)%16
 		c1=flr(c1)%16
 		if pico8.draw_palette[c0]~=c1 then
 			pico8.draw_palette[c0]=c1
-			pico8.draw_shader:send('palette', shdr_unpack(pico8.draw_palette))
-			pico8.sprite_shader:send('palette', shdr_unpack(pico8.draw_palette))
-			pico8.text_shader:send('palette', shdr_unpack(pico8.draw_palette))
+			__palette_modified = true
 		end
+	end
+
+	if __palette_modified then
+		pico8.draw_shader:send('palette', shdr_unpack(pico8.draw_palette))
+		pico8.sprite_shader:send('palette', shdr_unpack(pico8.draw_palette))
+		pico8.text_shader:send('palette', shdr_unpack(pico8.draw_palette))
+	end
+	if __display_modified then
+		pico8.display_shader:send('palette', shdr_unpack(pico8.display_palette))
+	end
+	if __alpha_modified then
+		pico8.sprite_shader:send('transparent', shdr_unpack(pico8.pal_transparent))
 	end
 end
 
@@ -405,8 +416,28 @@ function api.palt(c, t)
 	pico8.sprite_shader:send('transparent', shdr_unpack(pico8.pal_transparent))
 end
 
-function api.fillp(p)
-	-- TODO: oh jeez
+local function convertFillp(n)
+	local t = {}
+	for i = 31, 0, -1 do
+		n = bit.rol(n, 1)
+		if (i>15) then
+			t[16+31-i] = 1-bit.band(n, 1)
+		else
+			t[15-i] = 1-bit.band(n, 1)
+		end
+	end
+	return t
+end
+
+function api.fillp(p) --@todo: implement colors bits/transparency and all the new stuff
+	p=p or 0
+	if math.fmod(p, 1)~=0 then
+    pico8.draw_shader:send('opaque', 0)
+  else
+    pico8.draw_shader:send('opaque', 1)
+  end
+	pico8.fillp = convertFillp(flr(p))
+	pico8.draw_shader:send('fillp', shdr_unpack(pico8.fillp))
 end
 
 function api.map(cel_x, cel_y, sx, sy, cel_w, cel_h, bitmask)
@@ -642,6 +673,8 @@ function api.peek(addr)
 		local val=api.dget(math.floor((addr-0x5e00)/4))*0x10000
 		local shift=(addr%4)*8
 		return bit.rshift(bit.band(val, bit.lshift(0xFF, shift)), shift)
+  elseif addr<0x5f40 then
+		-- TODO: Draw state
 	elseif addr<0x5f80 then
 		-- TODO: Hardware state
 		if addr==0x5f26 then
@@ -729,8 +762,10 @@ function api.poke(addr, val)
 		local oval=api.dget(ind)*0x10000
 		local shift=(addr%4)*8
 		api.dset(ind, bit.bor(bit.band(oval, bit.bnot(bit.lshift(0xFF, shift))), bit.lshift(val, shift))/0x10000)
-	elseif addr<0x5f80 then
-		-- FIXME: Draw state
+	elseif addr<0x5f40 then
+		-- TODO: Draw state
+  elseif addr<0x5f80 then
+		-- TODO: Hardware state
 	elseif addr<0x5fc0 then
 		-- FIXME: Persistence data
 	elseif addr<0x6000 then
