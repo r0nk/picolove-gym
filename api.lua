@@ -1176,7 +1176,19 @@ function api.holdframe()
 	-- TODO: Implement this
 end
 
-function api.menuitem()
+function api.menuitem(index,label,callback)
+  if not index or index<1 or index >5 then return end
+  if label==nil or callback==nil then
+    pico8.custom_menu[index] = nil
+  else
+    pico8.custom_menu[index] = {string.sub(label,1,16), callback}
+  end
+
+  local tot=0
+  for i=1,5 do
+    if pico8.custom_menu[i]~=nil then tot=tot+1 end
+  end
+  pico8.custom_menu[0] = tot
 end
 
 api.sub=string.sub

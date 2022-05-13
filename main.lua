@@ -2,18 +2,18 @@ pico8={
 	fps=30,
 	resolution={128, 128},
 	palette={
-		{0,  0,  0,  255},
+		{0, 0, 0, 255},
 		{29, 43, 83, 255},
 		{126,37, 83, 255},
-		{0,  135,81, 255},
+		{0, 135, 81, 255},
 		{171,82, 54, 255},
 		{95, 87, 79, 255},
 		{194,195,199,255},
 		{255,241,232,255},
-		{255,0,  77, 255},
-		{255,163,0,  255},
+		{255, 0, 77, 255},
+		{255,163,0, 255},
 		{255,240,36, 255},
-		{0,  231,86, 255},
+		{0, 231, 86, 255},
 		{41, 173,255,255},
 		{131,118,156,255},
 		{255,119,168,255},
@@ -66,7 +66,8 @@ pico8={
 	draw_palette={},
 	display_palette={},
 	pal_transparent={},
-  fillp = {[0]=1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+  fillp = {[0]=1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+  custom_menu={[0]=0,nil,nil,nil,nil,nil}
 }
 
 require("strict")
@@ -510,21 +511,32 @@ function flip_screen()
 		love.graphics.draw(pico8.screen, xpadding, ypadding, 0, scale, scale)
 	end
 
-  if paused then --draw pico8 paused menu bypassing any userdefined palette
-    love.graphics.setShader()
-    love.graphics.scale(scale,scale)
-    love.graphics.setColor(0, 0, 0, 1)
-    love.graphics.rectangle("fill", 24, 44, 130-48, 118-76)
-    love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.rectangle("fill", 25, 45, 128-48, 116-76)
-    love.graphics.setColor(0, 0, 0, 1)
-    love.graphics.rectangle("fill", 26, 46, 126-48, 114-76)
-    love.graphics.setColor(1, 1, 1, 1)
-    for l=0,3 do
-      if l==paused_selected then menu_print(">", 28, 50+8*l) end
-      menu_print(paused_menu[l+1][1], 35, 50+8*l)
-    end
-  end
+	if paused then --draw pico8 paused menu bypassing any userdefined palette
+		local height = 118-76+pico8.custom_menu[0]*8
+		local pad_y = flr((128-height)/2)
+		love.graphics.setShader()
+		love.graphics.scale(scale,scale)
+		love.graphics.setColor(0, 0, 0, 1)
+		love.graphics.rectangle("fill", 23, pad_y,	 130-48, height)
+		love.graphics.setColor(1, 1, 1, 1)
+		love.graphics.rectangle("fill", 24, pad_y+1, 128-48, height-2)
+		love.graphics.setColor(0, 0, 0, 1)
+		love.graphics.rectangle("fill", 25, pad_y+2, 126-48, height-4)
+		love.graphics.setColor(1, 1, 1, 1)
+		pad_y =	pad_y+6
+		for l=0,3 do
+			if l==paused_selected then menu_print(">", 27, pad_y+8*l) end
+			menu_print(paused_menu[l+1][1], 34, pad_y+8*l)
+		end
+		local pos=1
+		for l=1,5 do
+			if l+3==paused_selected then menu_print(">", 27, pad_y+8*(l+3)) end
+			if pico8.custom_menu[l] then
+				menu_print(pico8.custom_menu[l][1], 34, pad_y+8*(pos+3))
+				pos=pos+1
+			end
+		end
+	end
 
 	if gif_recording then
 		love.graphics.setCanvas(gif_canvas)
@@ -709,18 +721,38 @@ local function isCtrlOrGuiDown()
 end
 
 function love.keypressed(key)
-  log(key)
-  if paused then
-    if key=='z' or key=='x' or key=='c' or key=='v' or key=='return' then
-      local handler = paused_menu[paused_selected+1][2]
-      if handler then handler() end
-    elseif key=='up' then
-      paused_selected=(paused_selected-1)%4
-    elseif key=='down' then
-      paused_selected=(paused_selected+1)%4
-    elseif key=='pause' or key=='p' then
-      paused=false
-    end
+	if paused then
+		if key=='z' or key=='x' or key=='c' or key=='v' or key=='return' then
+			local handler
+			if paused_selected<4 then
+				handler = paused_menu[paused_selected+1][2]
+			else
+				local pos=1
+				for l=1,5 do
+					if pos+3==paused_selected then
+						if pico8.custom_menu[l] then
+							handler = pico8.custom_menu[l][2]
+							break
+						end
+					else
+						pos=pos+1
+					end
+				end
+			end
+			if handler then
+        local b = 0 --@todo: The callback takes a single parameter that is a bitfield of L,R,X button presses
+				if handler(b)==true then
+				else
+					paused=false
+				end
+			end
+		elseif key=='up' then
+			paused_selected=(paused_selected-1)%(4+pico8.custom_menu[0])
+		elseif key=='down' then
+			paused_selected=(paused_selected+1)%(4+pico8.custom_menu[0])
+		elseif key=='pause' or key=='p' then
+			paused=false
+		end
   else
     if key=='r' and isCtrlOrGuiDown() then
       api.music()
