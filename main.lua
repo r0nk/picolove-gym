@@ -85,6 +85,7 @@ local tobase=nil
 local topad=nil
 local gif_recording=nil
 local gif_canvas=nil
+local gym_canvas=nil
 local osc
 local host_time=0
 local retro_mode=false
@@ -416,6 +417,17 @@ local function touchcheck(i, x, y)
 	end
 end
 
+local function gym_buttons()
+	local contents = "0"
+	local size
+	local i = 0
+	contents,size = love.filesystem.read("action",5)
+	for c in contents:gmatch"." do
+		i = i + 1
+		keypressed[i]=(c == '1')
+	end
+end
+
 local function update_buttons()
 	local init, loop=pico8.fps/2, pico8.fps/7.5
 	local touches
@@ -525,6 +537,15 @@ function flip_screen()
       menu_print(paused_menu[l+1][1], 35, 50+8*l)
     end
   end
+
+  --- r0nk mod
+  	local imagedata
+  	gym_canvas = love.graphics.newCanvas(128,128)
+  	love.graphics.setCanvas(gym_canvas)
+	love.graphics.draw(pico8.screen, 0, 0, 0, 1, 1)
+	love.graphics.setCanvas()
+	imagedata = gym_canvas:newImageData()
+	imagedata:encode("tga","screen.tga")
 
 	if gif_recording then
 		love.graphics.setCanvas(gif_canvas)
@@ -816,6 +837,18 @@ function getMouseY()
 	return math.floor((love.mouse.getY()-ypadding)/scale)
 end
 
+function gymlock()
+	local contents = "0"
+	local size
+	print(contents)
+	while(contents~="1") do
+		print("inner")
+		print(contents)
+		contents,size = love.filesystem.read("step",1)
+	end
+	love.filesystem.remove("step")
+end
+
 function love.run()
 	if love.math then
 		love.math.setRandomSeed(os.time())
@@ -878,5 +911,7 @@ function love.run()
 	end
 
 		if love.timer then love.timer.sleep(0.001) end
+		-- r0nk mod
+		gymlock()
 	end
 end
