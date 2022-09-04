@@ -1,31 +1,69 @@
 #!/bin/env python3
 
-class SimpleCorridor(gym.Env):
+import random
+import pyTGA
+import numpy as np
+
+import gym
+from gym import spaces
+
+import os
+import time
+
+print("Starting up picogym")
+
+def wtf(file,string):
+    with open("/home/r0nk/.local/share/love/picolove/"+file,"w") as f:
+        f.write(string)
+        f.close()
+
+def wait_for_contents(file,string):
+    while True:
+        with open("/home/r0nk/.local/share/love/picolove/"+file,"r") as f:
+            if f.read() == string:
+                    break
+            f.close()
+
+class Picogym(gym.Env):
     """Example of a custom env in which you have to walk down a corridor.
     You can configure the length of the corridor via the env config."""
 
-    def __init__(self, config: EnvContext):
-        self.end_pos = config["corridor_length"]
-        self.cur_pos = 0
-        self.action_space = Discrete(2)
-        self.observation_space = Box(0.0, self.end_pos, shape=(1,), dtype=np.float32)
-        # Set the seed. This is only used for the final (reach goal) reward.
-        self.seed(config.worker_index * config.num_workers)
+    def __init__(self):
+        self.action_space = spaces.Discrete(7) #nothing, up, down, left, right, a, b
+        self.observation_space = spaces.Box(low=0,high=255,shape=(128,128,3),dtype=np.uint8)
+        os.system("love . &")
+        time.sleep(1)
+
+    def observe(self):
+        image = pyTGA.Image()
+        a = []
+        i=0
+        while os.stat("/home/r0nk/.local/share/love/picolove/screen.tga").st_size < 8:
+            pass
+        for p in image.load("/home/r0nk/.local/share/love/picolove/screen.tga").get_pixels():
+            i+=1
+            if i % 4 == 0:
+                continue
+            a.append(p)
+        return np.array(a).reshape((128,128,3))
 
     def reset(self):
         self.cur_pos = 0
-        return [self.cur_pos]
+        return self.observe()
 
     def step(self, action):
-        assert action in [0, 1], action
-        if action == 0 and self.cur_pos > 0:
-            self.cur_pos -= 1
-        elif action == 1:
-            self.cur_pos += 1
-        done = self.cur_pos >= self.end_pos
-        # Produce a random reward when we reach the goal.
-        return [self.cur_pos], random.random() * 2 if done else -0.1, done, {}
+        wait_for_contents("step","0")
+        action_string = ""
+        for i in range(5):
+            if i == action:
+                action_string+="1"
+            else:
+                action_string+="0"
+        wtf("action",str(action_string))
+        obs = self.observe()
+        wtf("step","1")
+        done = False
+        return obs, False, {}
 
     def seed(self, seed=None):
         random.seed(seed)
-

@@ -425,7 +425,7 @@ local function gym_buttons()
 	contents,size = love.filesystem.read("action",5)
 	for c in contents:gmatch"." do
 		i = i + 1
-		keypressed[i]=(c == '1')
+		pico8.keypressed[0][i]=(c == '1')
 	end
 end
 
@@ -471,6 +471,7 @@ local function update_buttons()
 				keypressed[i]=true
 			end
 		end
+		gym_buttons()
 	end
 	pico8.keypressed.counter=pico8.keypressed.counter-1
 	if pico8.keypressed.counter<=0 then
@@ -872,13 +873,11 @@ end
 function gymlock()
 	local contents = "0"
 	local size
-	print(contents)
+	love.filesystem.write("step","0",1)
+	contents,size = love.filesystem.read("step",1)
 	while(contents~="1") do
-		print("inner")
-		print(contents)
 		contents,size = love.filesystem.read("step",1)
 	end
-	love.filesystem.remove("step")
 end
 
 function love.run()
@@ -942,8 +941,8 @@ function love.run()
 		end
 	end
 
-		if love.timer then love.timer.sleep(0.001) end
-		-- r0nk mod
-		gymlock()
+	if love.timer then love.timer.sleep(0.001) end
+	-- r0nk mod
+	gymlock()
 	end
 end
