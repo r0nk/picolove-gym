@@ -10,16 +10,18 @@ from gym import spaces
 import os
 import time
 
+picopath="/home/r0nk/.local/share/love/picolove/"
+
 print("Starting up picogym")
 
 def wtf(file,string):
-    with open("/home/r0nk/.local/share/love/picolove/"+file,"w") as f:
+    with open(picopath+file,"w") as f:
         f.write(string)
         f.close()
 
 def wait_for_contents(file,string):
     while True:
-        with open("/home/r0nk/.local/share/love/picolove/"+file,"r") as f:
+        with open(picopath+file,"r") as f:
             if f.read() == string:
                     break
             f.close()
@@ -38,9 +40,9 @@ class Picogym(gym.Env):
         image = pyTGA.Image()
         a = []
         i=0
-        while os.stat("/home/r0nk/.local/share/love/picolove/screen.tga").st_size < 8:
+        while os.stat(picopath+"screen.tga").st_size < 8:
             pass
-        for p in image.load("/home/r0nk/.local/share/love/picolove/screen.tga").get_pixels():
+        for p in image.load(picopath+"screen.tga").get_pixels():
             i+=1
             if i % 4 == 0:
                 continue
